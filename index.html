@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#e11d2e"><meta name="apple-mobile-web-app-capable" content="yes">
+<title>مدیریت آرایشگاه محسن کرمانی</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Tahoma,sans-serif;background:#17191c;color:#f5f5f5}
+.app{max-width:520px;margin:auto;min-height:100vh;background:#f4f4f5;color:#17191c;padding-bottom:90px}
+header{background:linear-gradient(135deg,#202226,#e11d2e);color:white;padding:28px 18px 22px;border-radius:0 0 24px 24px;position:sticky;top:0;z-index:5}
+.brand{font-size:20px;font-weight:800}.sub{opacity:.8;font-size:12px;margin-top:4px}
+main{padding:16px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.card{background:white;border-radius:16px;padding:14px;box-shadow:0 3px 14px #0000000b}.label{font-size:12px;color:#707070}.num{font-size:20px;font-weight:800;margin-top:6px}.red{color:#e11d2e}.green{color:#159447}
+.section{display:flex;justify-content:space-between;align-items:center;margin:20px 2px 10px}.section h2{font-size:16px;margin:0}.btn{border:0;border-radius:12px;padding:10px 14px;background:#e11d2e;color:#fff;font-weight:700}.btn.gray{background:#303237}.list{display:flex;flex-direction:column;gap:9px}.row{background:#fff;border-radius:14px;padding:13px;display:flex;justify-content:space-between;align-items:center}.small{font-size:12px;color:#777}.tag{font-size:11px;padding:5px 8px;border-radius:20px;background:#fee2e2;color:#b91c1c}
+nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:auto;background:#fff;border-top:1px solid #ddd;display:grid;grid-template-columns:repeat(5,1fr);padding:8px 4px calc(8px + env(safe-area-inset-bottom));z-index:10}
+nav button{border:0;background:none;color:#777;font-size:10px}.navicon{display:block;font-size:19px;margin-bottom:3px}.active{color:#e11d2e!important;font-weight:800}
+input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:11px;margin:6px 0;background:#fafafa} .modal{position:fixed;inset:0;background:#0008;display:none;align-items:end;z-index:20}.sheet{background:#fff;width:100%;max-width:520px;margin:auto;border-radius:22px 22px 0 0;padding:20px;max-height:85vh;overflow:auto}.sheet h3{margin-top:0}
+.chart{height:110px;display:flex;align-items:end;gap:8px;padding:10px 4px}.bar{flex:1;background:#e11d2e;border-radius:7px 7px 2px 2px}.muted{color:#777;font-size:12px}
+.empty{padding:25px;text-align:center;color:#888}.search{margin-bottom:10px}
+</style>
+</head>
+<body><div class="app">
+<header><div class="brand">مدیریت آرایشگاه محسن کرمانی</div><div class="sub">مدیریت هوشمند مشتری، نوبت، مالی، قرعه‌کشی و انبار</div></header>
+<main id="view"></main>
+<nav>
+<button data-page="home" class="active"><span class="navicon">⌂</span>خانه</button>
+<button data-page="customers"><span class="navicon">♙</span>مشتریان</button>
+<button data-page="appointments"><span class="navicon">▣</span>نوبت‌ها</button>
+<button data-page="lottery"><span class="navicon">🎟</span>قرعه‌کشی</button>
+<button data-page="more"><span class="navicon">☰</span>بیشتر</button>
+</nav>
+<div id="modal" class="modal"><div class="sheet" id="sheet"></div></div>
+</div>
+<script>
+const key='mk_barber_v1';
+let db=JSON.parse(localStorage.getItem(key)||'{"customers":[],"appointments":[],"transactions":[],"products":[],"winners":[]}');
+const save=()=>localStorage.setItem(key,JSON.stringify(db));
+const money=n=>(Number(n)||0).toLocaleString('fa-IR')+' تومان';
+const today=()=>new Date().toLocaleDateString('fa-IR');
+const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+function openSheet(title,body,submit){
+ sheet.innerHTML=`<h3>${title}</h3>${body}<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" id="saveBtn">${submit||'ذخیره'}</button><button class="btn gray" onclick="closeSheet()">بستن</button></div>`;
+ modal.style.display='flex'; document.getElementById('saveBtn').onclick=()=>{ if(submitFn) submitFn(); };
+}
+let submitFn=null;
+function closeSheet(){modal.style.display='none';submitFn=null}
+function addCustomer(){
+ openSheet('مشتری جدید','<input id="n" placeholder="نام و نام خانوادگی"><input id="p" placeholder="شماره تماس"><input id="note" placeholder="یادداشت">');
+ submitFn=()=>{let n=document.getElementById('n').value.trim();if(!n)return;db.customers.push({id:Date.now(),name:n,phone:p.value,note:note.value,chances:1,visits:0});save();closeSheet();render('customers')};
+}
+function addAppointment(){
+ openSheet('نوبت جدید','<input id="an" placeholder="نام مشتری"><input id="date" type="date"><input id="time" type="time"><input id="service" placeholder="خدمت"><input id="price" type="number" placeholder="مبلغ">');
+ submitFn=()=>{if(!an.value.trim())return;db.appointments.push({id:Date.now(),name:an.value,date:date.value||new Date().toISOString().slice(0,10),time:time.value,service:service.value,price:Number(price.value)||0,status:'رزرو'});save();closeSheet();render('appointments')};
+}
+function addTx(){
+ openSheet('ثبت دخل یا خرج','<select id="type"><option value="income">درآمد</option><option value="expense">هزینه</option></select><input id="amount" type="number" placeholder="مبلغ"><input id="desc" placeholder="شرح">');
+ submitFn=()=>{db.transactions.push({id:Date.now(),type:type.value,amount:Number(amount.value)||0,desc:desc.value,date:today()});save();closeSheet();render('finance')};
+}
+function addProduct(){
+ openSheet('محصول جدید','<input id="pn" placeholder="نام محصول"><input id="qty" type="number" placeholder="موجودی"><input id="buy" type="number" placeholder="قیمت خرید"><input id="sell" type="number" placeholder="قیمت فروش"><input id="min" type="number" placeholder="حداقل موجودی">');
+ submitFn=()=>{if(!pn.value.trim())return;db.products.push({id:Date.now(),name:pn.value,qty:Number(qty.value)||0,buy:Number(buy.value)||0,sell:Number(sell.value)||0,min:Number(min.value)||1});save();closeSheet();render('inventory')};
+}
+function dashboard(){
+ let inc=db.transactions.filter(x=>x.type==='income').reduce((a,x)=>a+x.amount,0), exp=db.transactions.filter(x=>x.type==='expense').reduce((a,x)=>a+x.amount,0);
+ return `<div class="grid"><div class="card"><div class="label">درآمد کل</div><div class="num green">${money(inc)}</div></div><div class="card"><div class="label">هزینه کل</div><div class="num red">${money(exp)}</div></div><div class="card"><div class="label">سود</div><div class="num">${money(inc-exp)}</div></div><div class="card"><div class="label">مشتریان</div><div class="num">${db.customers.length.toLocaleString('fa-IR')}</div></div></div>
+<div class="section"><h2>نوبت‌های امروز</h2><button class="btn" onclick="addAppointment()">+ نوبت</button></div>
+<div class="list">${db.appointments.slice(0,5).map(a=>`<div class="row"><div><b>${esc(a.name)}</b><div class="small">${esc(a.time)} · ${esc(a.service)}</div></div><span class="tag">${esc(a.status)}</span></div>`).join('')||'<div class="card empty">هنوز نوبتی ثبت نشده</div>'}</div>
+<div class="section"><h2>موجودی کم</h2></div><div class="list">${db.products.filter(p=>p.qty<=p.min).map(p=>`<div class="row"><div>${esc(p.name)}<div class="small">موجودی: ${p.qty}</div></div><span class="tag">نیاز به خرید</span></div>`).join('')||'<div class="card empty">موجودی همه محصولات مناسب است</div>'}</div>`;
+}
+function customers(){return `<div class="section"><h2>مشتریان</h2><button class="btn" onclick="addCustomer()">+ مشتری</button></div><input class="search" id="cs" placeholder="جستجوی نام یا شماره..." oninput="filterCustomers()"><div class="list" id="cl">${customerRows(db.customers)}</div>`}
+function customerRows(arr){return arr.map(c=>`<div class="row"><div><b>${esc(c.name)}</b><div class="small">${esc(c.phone||'بدون شماره')} · ${c.visits} مراجعه</div></div><span class="tag">${c.chances} شانس</span></div>`).join('')||'<div class="card empty">مشتری‌ای ثبت نشده</div>'}
+function filterCustomers(){let q=cs.value.trim();cl.innerHTML=customerRows(db.customers.filter(c=>(c.name+c.phone).includes(q)))}
+function appointments(){return `<div class="section"><h2>نوبت‌دهی</h2><button class="btn" onclick="addAppointment()">+ نوبت</button></div><div class="list">${db.appointments.map(a=>`<div class="row"><div><b>${esc(a.name)}</b><div class="small">${esc(a.date)} · ${esc(a.time)} · ${esc(a.service)}</div></div><span class="tag">${money(a.price)} · ${esc(a.status)}</span></div>`).join('')||'<div class="card empty">نوبتی وجود ندارد</div>'}</div>`}
+function lottery(){return `<div class="card" style="text-align:center;background:linear-gradient(135deg,#202226,#333);color:white"><div style="font-size:42px">🎟️</div><h2>قرعه‌کشی مشتریان</h2><p class="muted" style="color:#bbb">هر مشتری با هر مراجعه می‌تواند شانس دریافت کند.</p><button class="btn" onclick="draw()">🎉 انجام قرعه‌کشی</button></div><div class="section"><h2>برندگان</h2></div><div class="list">${db.winners.map(w=>`<div class="row"><div><b>${esc(w.name)}</b><div class="small">${esc(w.date)}</div></div><span class="tag">${esc(w.prize)}</span></div>`).join('')||'<div class="card empty">هنوز برنده‌ای ثبت نشده</div>'}</div>`}
+function draw(){if(!db.customers.length){alert('اول حداقل یک مشتری ثبت کنید.');return}let pool=db.customers.flatMap(c=>Array(Math.max(1,c.chances)).fill(c));let w=pool[Math.floor(Math.random()*pool.length)];let prize=prompt('نام جایزه چیست؟','کارت تخفیف');if(prize===null)return;db.winners.unshift({name:w.name,prize,date:today()});save();render('lottery');alert('🎉 برنده: '+w.name)}
+function finance(){let inc=db.transactions.filter(x=>x.type==='income').reduce((a,x)=>a+x.amount,0),exp=db.transactions.filter(x=>x.type==='expense').reduce((a,x)=>a+x.amount,0);return `<div class="grid"><div class="card"><div class="label">درآمد</div><div class="num green">${money(inc)}</div></div><div class="card"><div class="label">خرج</div><div class="num red">${money(exp)}</div></div></div><div class="section"><h2>ثبت تراکنش</h2><button class="btn" onclick="addTx()">+ ثبت</button></div><div class="list">${db.transactions.map(t=>`<div class="row"><div><b>${esc(t.desc||'بدون شرح')}</b><div class="small">${esc(t.date)}</div></div><span class="tag">${t.type==='income'?'+':'-'} ${money(t.amount)}</span></div>`).join('')||'<div class="card empty">تراکنشی ثبت نشده</div>'}</div>`}
+function inventory(){return `<div class="section"><h2>موجودی محصولات</h2><button class="btn" onclick="addProduct()">+ محصول</button></div><div class="list">${db.products.map(p=>`<div class="row"><div><b>${esc(p.name)}</b><div class="small">خرید ${money(p.buy)} · فروش ${money(p.sell)}</div></div><span class="tag">${p.qty<=p.min?'⚠️ ':''}${p.qty} عدد</span></div>`).join('')||'<div class="card empty">محصولی ثبت نشده</div>'}</div>`}
+function more(){return `<div class="section"><h2>امکانات بیشتر</h2></div><div class="list"><div class="row" onclick="render('finance')"><b>💰 دخل و خرج</b><span>›</span></div><div class="row" onclick="render('inventory')"><b>📦 انبار و محصولات</b><span>›</span></div><div class="row"><div><b>📊 گزارش‌ها</b><div class="small">گزارش درآمد، هزینه و مشتری</div></div></div><div class="row"><div><b>💾 پشتیبان‌گیری</b><div class="small">اطلاعات در همین آیفون ذخیره می‌شود.</div></div><button class="btn gray" onclick="backup()">خروجی</button></div><div class="row"><div><b>↩️ بازیابی</b><div class="small">فایل پشتیبان JSON را انتخاب کنید.</div></div><input id="restore" type="file" accept=".json" style="width:130px"></div></div>`}
+function backup(){let a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(db)],{type:'application/json'}));a.download='mohsen-kermani-backup.json';a.click()}
+document.addEventListener('change',e=>{if(e.target.id==='restore'){let f=e.target.files[0];if(!f)return;let r=new FileReader();r.onload=()=>{try{db=JSON.parse(r.result);save();render('more');alert('بازیابی انجام شد.')}catch{alert('فایل معتبر نیست')}};r.readAsText(f)}})
+function render(page='home'){document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('active',b.dataset.page===page));view.innerHTML=page==='home'?dashboard():page==='customers'?customers():page==='appointments'?appointments():page==='lottery'?lottery():page==='finance'?finance():page==='inventory'?inventory():more()}
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>render(b.dataset.page));
+render();
+</script></body></html>
